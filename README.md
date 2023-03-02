@@ -67,10 +67,6 @@ Extract opencv-4.4.0-android-sdk.zip to C:\
 
 **Debug build**
 
-`cd C:\Users\<user>\android-camera-edge-detector\app\src\main`
-
-`ndk-build`
-
 `cd C:\Users\<user>\android-camera-edge-detector`
 
 `gradle assembleDebug`
@@ -84,10 +80,6 @@ app-debug.apk size: ~30 MB
 ---
 
 **Production build**
-
-`cd C:\Users\<user>\android-camera-edge-detector\app\src\main`
-
-`ndk-build`
 
 `cd C:\Users\<user>\android-camera-edge-detector`
 
