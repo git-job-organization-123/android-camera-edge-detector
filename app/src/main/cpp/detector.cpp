@@ -34,35 +34,35 @@ void detectKeypoints() {
   featureDetector->detect(grayImage, keypoints);
 }
 
-void dilate(cv::Mat* image, int x, int y) {
+void dilate(cv::Mat &image, int x, int y) {
   cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5,5));
-  cv::dilate(*image, *image, kernel);
+  cv::dilate(image, image, kernel);
 }
 
-void colorEdges(cv::Mat* edgeImage) {
+void colorEdges(cv::Mat &edgeImage) {
   cv::Mat colorEdges;
-  cv::cvtColor(*edgeImage, colorEdges, cv::COLOR_GRAY2BGR);
+  cv::cvtColor(edgeImage, colorEdges, cv::COLOR_GRAY2BGR);
   std::vector<cv::Mat> channels;
   cv::split(colorEdges, channels);
   channels[0] = channels[1] = channels[2] = 0;
 
   if (previewMode == PreviewMode::DETECT_PREVIEW_EDGES_RED) {
-    channels[2] = *edgeImage;
+    channels[2] = edgeImage;
   }
   else if (previewMode == PreviewMode::DETECT_PREVIEW_EDGES_GREEN) {
-    channels[1] = *edgeImage;
+    channels[1] = edgeImage;
   }
   else if (previewMode == PreviewMode::DETECT_PREVIEW_EDGES_BLUE) {
-    channels[0] = *edgeImage;
+    channels[0] = edgeImage;
   }
 
   cv::merge(channels, colorEdges);
 
-  *edgeImage = colorEdges;
+  edgeImage = colorEdges;
 }
 
-void detectEdges(cv::Mat* edgeImage) {
-  cv::Canny(grayImage, *edgeImage, 80, 90);
+void detectEdges(cv::Mat &edgeImage) {
+  cv::Canny(grayImage, edgeImage, 80, 90);
 
   if (previewMode == PreviewMode::DETECT_PREVIEW_EDGES_RED
    || previewMode == PreviewMode::DETECT_PREVIEW_EDGES_GREEN
@@ -77,13 +77,13 @@ void detectEdges(cv::Mat* edgeImage) {
     dilate(edgeImage, 20, 20);
 
     // Apply pixels from original image to edge image
-    grayImage.copyTo(*edgeImage, *edgeImage);
+    grayImage.copyTo(edgeImage, edgeImage);
   }
   else if (previewMode == PreviewMode::DETECT_PREVIEW_EDGES_WHITE_WITH_BACKGROUND) {
-    cv::cvtColor(*edgeImage, *edgeImage, cv::COLOR_BGR2RGB);
+    cv::cvtColor(edgeImage, edgeImage, cv::COLOR_BGR2RGB);
 
     // Copy edges to preview image
-    cv::addWeighted(*edgeImage, 0.5, grayImage, 0.5, 0, *edgeImage);
+    cv::addWeighted(edgeImage, 0.5, grayImage, 0.5, 0, edgeImage);
   }
 }
 
@@ -98,7 +98,7 @@ void detect() {
         || previewMode == PreviewMode::DETECT_PREVIEW_EDGES_BLUE
         || previewMode == PreviewMode::DETECT_PREVIEW_EDGES_GRAYSCALE
         || previewMode == PreviewMode::DETECT_PREVIEW_EDGES_WHITE_WITH_BACKGROUND) { // Preview edges
-    detectEdges(&processedImage);
+    detectEdges(processedImage);
     cv::cvtColor(processedImage, processedImage, cv::COLOR_BGR2RGB);
   }
 }
