@@ -220,10 +220,6 @@ GLfloat *vboData = (GLfloat*)malloc(10000000 * sizeof(GLfloat));
 GLushort *iboData = (GLushort*)malloc(5000000 * sizeof(GLushort));
 
 void drawSmallRedSquares() {
-  size_t numSquares = keypoints.size();
-  size_t vboSize = numSquares * 12 * sizeof(GLfloat);
-  size_t iboSize = numSquares * 6 * sizeof(GLushort);
-
   float width = 0.01f;
   float height = 0.01f;
 
@@ -256,6 +252,10 @@ void drawSmallRedSquares() {
     ++i;
   });
 
+  size_t numSquares = keypoints.size();
+  size_t vboSize = numSquares * 48;
+  size_t iboSize = numSquares * 24;
+
   // VBO
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
   glBufferData(GL_ARRAY_BUFFER, vboSize, vboData, GL_DYNAMIC_DRAW);
@@ -280,9 +280,6 @@ void drawSmallRedSquares() {
 }
 
 void drawSmallRedLines() {
-  size_t numSquares = keypoints.size();
-  size_t vboSize = numSquares * 12 * sizeof(GLfloat);
-
   float width = 0.01f;
   float height = 0.01f;
 
@@ -304,6 +301,9 @@ void drawSmallRedLines() {
 
     ++i;
   });
+
+  size_t numSquares = keypoints.size();
+  size_t vboSize = numSquares * 48;
 
   // VBO
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
