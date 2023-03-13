@@ -216,16 +216,13 @@ void setupGraphics(int width, int height) {
   glUniform1i(gutTextureHandle, 0);
 }
 
-std::vector<GLfloat> vboVector;
-std::vector<GLushort> iboVector;
+GLfloat *vboData = (GLfloat*)malloc(10000000 * sizeof(GLfloat));
+GLushort *iboData = (GLushort*)malloc(5000000 * sizeof(GLushort));
 
 void drawSmallRedSquares() {
   size_t numSquares = keypoints.size();
   size_t vboSize = numSquares * 12 * sizeof(GLfloat);
   size_t iboSize = numSquares * 6 * sizeof(GLushort);
-
-  vboVector.resize(vboSize / sizeof(GLfloat));
-  iboVector.resize(iboSize / sizeof(GLushort));
 
   float width = 0.01f;
   float height = 0.01f;
@@ -244,13 +241,13 @@ void drawSmallRedSquares() {
     };
 
     const uint32_t vboIndex = i * 12;
-    memcpy(&vboVector[vboIndex], vboValues, sizeof(vboValues));
+    memcpy(&vboData[vboIndex], vboValues, 48);
 
     const uint32_t indexIbo = i * 6;
     const uint32_t offsetIbo = i * 4;
 
-    GLushort* iboStart = &iboVector[indexIbo];
-    std::memcpy(iboStart, gIndices, 6 * sizeof(GLushort));
+    GLushort* iboStart = &iboData[indexIbo];
+    std::memcpy(iboStart, gIndices, 24);
 
     for (uint32_t j = 0; j < 6; ++j) {
       *iboStart++ += offsetIbo;
@@ -261,11 +258,11 @@ void drawSmallRedSquares() {
 
   // VBO
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, vboSize, vboVector.data(), GL_DYNAMIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, vboSize, vboData, GL_DYNAMIC_DRAW);
 
   // IBO
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, iboSize, iboVector.data(), GL_DYNAMIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, iboSize, iboData, GL_DYNAMIC_DRAW);
 
   // Set up the vertex attribute pointers
   glVertexAttribPointer(gvPositionHandle, 3, GL_FLOAT, GL_FALSE, 0, 0);
@@ -286,8 +283,6 @@ void drawSmallRedLines() {
   size_t numSquares = keypoints.size();
   size_t vboSize = numSquares * 12 * sizeof(GLfloat);
 
-  vboVector.resize(vboSize / sizeof(GLfloat));
-
   float width = 0.01f;
   float height = 0.01f;
 
@@ -305,14 +300,14 @@ void drawSmallRedLines() {
     };
 
     const uint32_t vboIndex = i * 12;
-    memcpy(&vboVector[vboIndex], vboValues, sizeof(vboValues));
+    memcpy(&vboData[vboIndex], vboValues, 48);
 
     ++i;
   });
 
   // VBO
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, vboSize, vboVector.data(), GL_DYNAMIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, vboSize, vboData, GL_DYNAMIC_DRAW);
 
   // Set up the vertex attribute pointers
   glVertexAttribPointer(gvPositionHandle, 3, GL_FLOAT, GL_FALSE, 0, 0);
