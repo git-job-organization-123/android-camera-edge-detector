@@ -2,7 +2,7 @@
 #include <android/log.h>
 #include <GLES3/gl3.h>
 #include <array>
-#include "previewmode.h"
+#include "globals.h"
 #include "detector.cpp"
 
 bool initialized;
@@ -15,12 +15,6 @@ GLuint gTextureProgram;
 
 // Shader program currently in use
 GLuint currentProgram;
-
-GLuint ibo;
-GLuint vbo;
-
-GLfloat *vboData = (GLfloat*)malloc(10000000 * sizeof(GLfloat));
-GLushort *iboData = (GLushort*)malloc(5000000 * sizeof(GLushort));
 
 class Renderer {
 public:
@@ -236,6 +230,18 @@ public:
   }
 };
 
+void setupDefaults() {
+  // Default preview mode
+  previewMode = PreviewMode::DETECT_PREVIEW_EDGES_WHITE;
+  previousPreviewMode = previewMode;
+}
+
+void allocateBuffers() {
+  // Allocate memory for vertex buffer and index buffer object
+  vboData = (GLfloat*)malloc(10000000 * sizeof(GLfloat));
+  iboData = (GLushort*)malloc(5000000 * sizeof(GLushort));
+}
+
 Renderer *renderer;
 
 void setRenderer(Renderer *renderer_) {
@@ -424,6 +430,9 @@ extern "C" {
 };
 
 JNIEXPORT void JNICALL Java_com_app_edgedetector_MyGLSurfaceView_init(JNIEnv *env, jobject obj,  jint width, jint height) {
+  setupDefaults();
+  allocateBuffers();
+
   setupDetector();
   setupGraphics(width, height);
   setupRenderers();
