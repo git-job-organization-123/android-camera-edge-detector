@@ -15,8 +15,5 @@ PreviewMode previousPreviewMode;
 GLuint ibo;
 GLuint vbo;
 
-GLfloat *vboData;
-GLushort *iboData;
-
 int cameraWidth;
 int cameraHeight;

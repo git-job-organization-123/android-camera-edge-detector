@@ -40,12 +40,6 @@ void setupDefaults() {
   previousPreviewMode = previewMode;
 }
 
-void allocateBuffers() {
-  // Allocate memory for vertex buffer and index buffer object
-  vboData = (GLfloat*)malloc(10000000 * sizeof(GLfloat));
-  iboData = (GLushort*)malloc(5000000 * sizeof(GLushort));
-}
-
 Detector *currentDetector = nullptr;
 
 Detector_Edges_Image_Red *redEdgesImageDetector;
@@ -303,7 +297,6 @@ extern "C" {
 
 JNIEXPORT void JNICALL Java_com_app_edgedetector_MyGLSurfaceView_init(JNIEnv *env, jobject obj,  jint width, jint height) {
   setupDefaults();
-  allocateBuffers();
 
   setupGraphics(width, height);
 

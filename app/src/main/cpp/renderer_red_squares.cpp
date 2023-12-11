@@ -20,45 +20,45 @@ public:
   }
 
   void draw() override {
-    int i = 0;
+    std::vector<GLfloat> vboDataVector;
+    std::vector<GLushort> iboDataVector;
 
-    std::for_each(keypoints.begin(), keypoints.end(), [i, this](cv::KeyPoint keypoint) mutable {
+    GLint numSquares = 0;
+
+    for (const auto& keypoint : keypoints) {
       float x = -(keypoint.pt.y / cameraHeight - 0.5f) * 2.0f;
       float y = -(keypoint.pt.x / cameraWidth - 0.5f) * 2.0f;
 
-      const uint32_t vboIndex = i * 8;
-      vboData[vboIndex + 0] = squareVertices[0] + x;
-      vboData[vboIndex + 1] = squareVertices[1] + y;
-      vboData[vboIndex + 2] = squareVertices[2] + x;
-      vboData[vboIndex + 3] = squareVertices[3] + y;
-      vboData[vboIndex + 4] = squareVertices[4] + x;
-      vboData[vboIndex + 5] = squareVertices[5] + y;
-      vboData[vboIndex + 6] = squareVertices[6] + x;
-      vboData[vboIndex + 7] = squareVertices[7] + y;
+      vboDataVector.emplace_back(squareVertices[0] + x);
+      vboDataVector.emplace_back(squareVertices[1] + y);
+      vboDataVector.emplace_back(squareVertices[2] + x);
+      vboDataVector.emplace_back(squareVertices[3] + y);
+      vboDataVector.emplace_back(squareVertices[4] + x);
+      vboDataVector.emplace_back(squareVertices[5] + y);
+      vboDataVector.emplace_back(squareVertices[6] + x);
+      vboDataVector.emplace_back(squareVertices[7] + y);
 
-      const uint32_t iboIndex = i * 6;
-      const uint32_t offsetIbo = i * 4;
-      iboData[iboIndex + 0] = indices[0] + offsetIbo;
-      iboData[iboIndex + 1] = indices[1] + offsetIbo;
-      iboData[iboIndex + 2] = indices[2] + offsetIbo;
-      iboData[iboIndex + 3] = indices[3] + offsetIbo;
-      iboData[iboIndex + 4] = indices[4] + offsetIbo;
-      iboData[iboIndex + 5] = indices[5] + offsetIbo;
+      const GLint offsetIbo = numSquares * 4;
+      iboDataVector.emplace_back(indices[0] + offsetIbo);
+      iboDataVector.emplace_back(indices[1] + offsetIbo);
+      iboDataVector.emplace_back(indices[2] + offsetIbo);
+      iboDataVector.emplace_back(indices[3] + offsetIbo);
+      iboDataVector.emplace_back(indices[4] + offsetIbo);
+      iboDataVector.emplace_back(indices[5] + offsetIbo);
 
-      ++i;
-    });
+      ++numSquares;
+    }
 
-    size_t numSquares = keypoints.size();
-    size_t vboSize = numSquares * 32;
-    size_t iboSize = numSquares * 24;
+    const GLint vboSize = vboDataVector.size() * sizeof(GLfloat);
+    const GLint iboSize = iboDataVector.size() * sizeof(GLushort);
 
     // VBO
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, vboSize, vboData, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vboSize, vboDataVector.data(), GL_DYNAMIC_DRAW);
 
     // IBO
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, iboSize, iboData, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, iboSize, iboDataVector.data(), GL_DYNAMIC_DRAW);
 
     // Set up the vertex attribute pointers
     glVertexAttribPointer(positionHandle, 2, GL_FLOAT, GL_FALSE, 0, 0);

@@ -20,31 +20,31 @@ public:
   }
 
   void draw() override {
-    int i = 0;
+    std::vector<GLfloat> vboDataVector;
 
-    std::for_each(keypoints.begin(), keypoints.end(), [i, this](cv::KeyPoint keypoint) mutable {
+    GLint numSquares = 0;
+
+    for (const auto& keypoint : keypoints) {
       float x = -(keypoint.pt.y / cameraHeight - 0.5f) * 2.0f;
       float y = -(keypoint.pt.x / cameraWidth - 0.5f) * 2.0f;
 
-      const uint32_t vboIndex = i * 8;
-      vboData[vboIndex + 0] = squareVertices[0] + x;
-      vboData[vboIndex + 1] = squareVertices[1] + y;
-      vboData[vboIndex + 2] = squareVertices[2] + x;
-      vboData[vboIndex + 3] = squareVertices[3] + y;
-      vboData[vboIndex + 4] = squareVertices[4] + x;
-      vboData[vboIndex + 5] = squareVertices[5] + y;
-      vboData[vboIndex + 6] = squareVertices[6] + x;
-      vboData[vboIndex + 7] = squareVertices[7] + y;
+      vboDataVector.emplace_back(squareVertices[0] + x);
+      vboDataVector.emplace_back(squareVertices[1] + y);
+      vboDataVector.emplace_back(squareVertices[2] + x);
+      vboDataVector.emplace_back(squareVertices[3] + y);
+      vboDataVector.emplace_back(squareVertices[4] + x);
+      vboDataVector.emplace_back(squareVertices[5] + y);
+      vboDataVector.emplace_back(squareVertices[6] + x);
+      vboDataVector.emplace_back(squareVertices[7] + y);
 
-      ++i;
-    });
+      ++numSquares;
+    }
 
-    size_t numSquares = keypoints.size();
-    size_t vboSize = numSquares * 32;
+    const GLint vboSize = vboDataVector.size() * sizeof(GLfloat);
 
     // VBO
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, vboSize, vboData, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vboSize, vboDataVector.data(), GL_DYNAMIC_DRAW);
 
     // Set up the vertex attribute pointers
     glVertexAttribPointer(positionHandle, 2, GL_FLOAT, GL_FALSE, 0, 0);
