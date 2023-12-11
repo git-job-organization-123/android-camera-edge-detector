@@ -15,6 +15,10 @@ public:
   : Renderer(program_) {
   }
 
+  void setKeypoints(std::vector<cv::KeyPoint> &keypoints_) override {
+    keypoints = keypoints_;
+  }
+
   void draw() override {
     int i = 0;
 
@@ -55,4 +59,7 @@ public:
 
     glDeleteBuffers(1, &vbo);
   }
+
+private:
+  std::vector<cv::KeyPoint> keypoints;
 };

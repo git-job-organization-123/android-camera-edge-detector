@@ -16,4 +16,5 @@ public:
   virtual void update() {}
   virtual void draw() {}
   virtual void setImageData(unsigned char* imageData_) {}
+  virtual void setKeypoints(std::vector<cv::KeyPoint> &keypoints_) {}
 };

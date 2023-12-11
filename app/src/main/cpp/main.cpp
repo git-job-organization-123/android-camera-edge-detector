@@ -2,8 +2,25 @@
 #include <android/log.h>
 #include <GLES3/gl3.h>
 #include <array>
+
+#include <opencv2/core.hpp> // OpenCV core
+#include <opencv2/imgproc.hpp> // OpenCV COLOR_
+#include <opencv2/features2d.hpp> // OpenCV fast feature detector
+
+using namespace cv;
+
 #include "globals.h"
 #include "detector.cpp"
+#include "detector_edges.cpp"
+#include "detector_edges_image.cpp"
+#include "detector_edges_image_color.cpp"
+#include "detector_edges_image_red.cpp"
+#include "detector_edges_image_green.cpp"
+#include "detector_edges_image_blue.cpp"
+#include "detector_edges_image_white.cpp"
+#include "detector_edges_image_grayscale.cpp"
+#include "detector_edges_image_background.cpp"
+#include "detector_edges_points.cpp"
 #include "renderer.cpp"
 #include "squares_renderer.cpp"
 #include "lines_renderer.cpp"
@@ -27,6 +44,65 @@ void allocateBuffers() {
   // Allocate memory for vertex buffer and index buffer object
   vboData = (GLfloat*)malloc(10000000 * sizeof(GLfloat));
   iboData = (GLushort*)malloc(5000000 * sizeof(GLushort));
+}
+
+Detector *currentDetector = nullptr;
+
+Detector_Edges_Image_Red *redEdgesImageDetector;
+Detector_Edges_Image_Green *greenEdgesImageDetector;
+Detector_Edges_Image_Blue *blueEdgesImageDetector;
+Detector_Edges_Image_White *whiteEdgesImageDetector;
+Detector_Edges_Image_Grayscale *grayscaleEdgesImageDetector;
+Detector_Edges_Image_Background *backgroundEdgesImageDetector;
+Detector_Edges_Points *pointsEdgesDetector;
+
+void setupDetectors() {
+  redEdgesImageDetector = new Detector_Edges_Image_Red();
+  greenEdgesImageDetector = new Detector_Edges_Image_Green();
+  blueEdgesImageDetector = new Detector_Edges_Image_Blue();
+  whiteEdgesImageDetector = new Detector_Edges_Image_White();
+  grayscaleEdgesImageDetector = new Detector_Edges_Image_Grayscale();
+  backgroundEdgesImageDetector = new Detector_Edges_Image_Background();
+  pointsEdgesDetector = new Detector_Edges_Points();
+}
+
+void setDetector(Detector *detector) {
+  currentDetector = detector;
+}
+
+void updateDetector() {
+  if (currentDetector != nullptr) {
+    currentDetector->clear();
+  }
+
+  switch (previewMode) {
+    case PreviewMode::DETECT_PREVIEW_EDGES_WHITE:
+      currentDetector = whiteEdgesImageDetector;
+      break;
+    case PreviewMode::DETECT_PREVIEW_EDGES_RED:
+      currentDetector = redEdgesImageDetector;
+      break;
+    case PreviewMode::DETECT_PREVIEW_EDGES_GREEN:
+      currentDetector = greenEdgesImageDetector;
+      break;
+    case PreviewMode::DETECT_PREVIEW_EDGES_BLUE:
+      currentDetector = blueEdgesImageDetector;
+      break;
+    case PreviewMode::DETECT_PREVIEW_EDGES_GRAYSCALE:
+      currentDetector = grayscaleEdgesImageDetector;
+      break;
+    case PreviewMode::DETECT_PREVIEW_EDGES_WHITE_WITH_BACKGROUND:
+      currentDetector = backgroundEdgesImageDetector;
+      break;
+    case PreviewMode::DETECT_EDGES_FAST:
+      currentDetector = pointsEdgesDetector;
+      break;
+    case PreviewMode::DETECT_EDGES_FAST_LINES:
+      currentDetector = pointsEdgesDetector;
+      break;
+  }
+
+  currentDetector->init();
 }
 
 Renderer *renderer;
@@ -194,15 +270,24 @@ void setupGraphics(int width, int height) {
   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 }
 
+void detectFrame(unsigned char* nv21ImageData) {  
+  currentDetector->setImageData(nv21ImageData);
+  currentDetector->detect();
+  currentDetector->clearImage();
+}
+
 void renderFrame() {
   if (currentProgram != renderer->program) {
     glUseProgram(renderer->program);
     currentProgram = renderer->program;
   }
 
-  if (previewMode != PreviewMode::DETECT_EDGES_FAST 
-   && previewMode != PreviewMode::DETECT_EDGES_FAST_LINES) { // Edges on image
-    renderer->setImageData(processedImage.data);
+  if (previewMode == PreviewMode::DETECT_EDGES_FAST 
+   || previewMode == PreviewMode::DETECT_EDGES_FAST_LINES) { // Image points
+    renderer->setKeypoints(currentDetector->keypoints);
+  }
+  else { // Image edges
+    renderer->setImageData(currentDetector->processedImage.data);
   }
 
   renderer->draw();
@@ -220,8 +305,9 @@ JNIEXPORT void JNICALL Java_com_app_edgedetector_MyGLSurfaceView_init(JNIEnv *en
   setupDefaults();
   allocateBuffers();
 
-  setupDetector();
   setupGraphics(width, height);
+
+  setupDetectors();
   setupRenderers();
 
   updateDetector();
@@ -267,7 +353,7 @@ JNIEXPORT void JNICALL Java_com_app_edgedetector_MyGLSurfaceView_processImageBuf
     unsigned char* uData = (unsigned char*)env->GetDirectBufferAddress(u);
     unsigned char* vData = (unsigned char*)env->GetDirectBufferAddress(v);
 
-    unsigned char* nv21 = (unsigned char*)malloc(ySize + uSize + vSize);
+    unsigned char* nv21ImageData = (unsigned char*)malloc(ySize + uSize + vSize);
 
     int yIndex = 0;
     int uvIndex = ySize;
@@ -282,30 +368,23 @@ JNIEXPORT void JNICALL Java_com_app_edgedetector_MyGLSurfaceView_processImageBuf
       int ySizeWidth = cameraWidth * yPixelStride;
 
       // Use memcpy to copy the Y data
-      memcpy(nv21 + yIndex, yData + ySrcIndex, ySizeWidth);
+      memcpy(nv21ImageData + yIndex, yData + ySrcIndex, ySizeWidth);
       yIndex += cameraWidth * yPixelStride;
 
       if (i % 2 == 0) {
         // Use memcpy to copy the U and V data
-        memcpy(nv21 + uvIndex, uData + uvSrcIndex, cameraWidth * uPixelStride / 2);
+        memcpy(nv21ImageData + uvIndex, uData + uvSrcIndex, cameraWidth * uPixelStride / 2);
         uvIndex += cameraWidth * uPixelStride / 2;
-        memcpy(nv21 + uvIndex, uData + uvSrcIndex, cameraWidth * vPixelStride / 2);
+        memcpy(nv21ImageData + uvIndex, uData + uvSrcIndex, cameraWidth * vPixelStride / 2);
         uvIndex += cameraWidth * vPixelStride / 2;
       }
     }
 
-    grayImage.create(cameraHeight, cameraWidth, CV_8UC1);
-    grayImage.data = nv21;
-    cv::cvtColor(grayImage, grayImage, cv::COLOR_BGR2RGB);
+    // Detect edges from image
+    detectFrame(nv21ImageData);
 
-    // Detection method for image
-    detect();
-
-    // Free memory
-    free(nv21);
-
-    // Clear image data
-    grayImage.release();
+    // Free NV21 image from memory
+    free(nv21ImageData);
 
     env->DeleteLocalRef(y);
     env->DeleteLocalRef(u);
