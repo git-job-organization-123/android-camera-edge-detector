@@ -47,13 +47,8 @@ bool initialized;
 // Shader program currently in use
 GLuint currentProgram;
 
-void setupDefaults() {
-  // Default preview mode
-  previewMode = PreviewMode::DETECT_PREVIEW_EDGES_WHITE;
-  previousPreviewMode = previewMode;
-}
-
 Detector *currentDetector = nullptr;
+Renderer *currentRenderer = nullptr;
 
 Detector_Edges_Image_Red *redEdgesImageDetector;
 Detector_Edges_Image_Green *greenEdgesImageDetector;
@@ -62,6 +57,16 @@ Detector_Edges_Image_White *whiteEdgesImageDetector;
 Detector_Edges_Image_Grayscale *grayscaleEdgesImageDetector;
 Detector_Edges_Image_Background *backgroundEdgesImageDetector;
 Detector_Edges_Points *pointsEdgesDetector;
+
+Renderer_Red_Squares *squaresRenderer;
+Renderer_Red_Lines *linesRenderer;
+Renderer_Texture *textureRenderer;
+
+void setupDefaults() {
+  // Default preview mode
+  previewMode = PreviewMode::DETECT_PREVIEW_EDGES_WHITE;
+  previousPreviewMode = previewMode;
+}
 
 void setupDetectors() {
   redEdgesImageDetector = new Detector_Edges_Image_Red();
@@ -112,20 +117,14 @@ void updateDetector() {
   currentDetector->init();
 }
 
-Renderer *renderer;
-
-void setRenderer(Renderer *renderer_) {
-  renderer = renderer_;
-}
-
-Renderer_Red_Squares *squaresRenderer;
-Renderer_Red_Lines *linesRenderer;
-Renderer_Texture *textureRenderer;
-
 void setupRenderers() {
   squaresRenderer = new Renderer_Red_Squares();
   linesRenderer = new Renderer_Red_Lines();
   textureRenderer = new Renderer_Texture();
+}
+
+void setRenderer(Renderer *renderer) {
+  currentRenderer = renderer;
 }
 
 void updateRenderer() {
@@ -171,20 +170,20 @@ void detectFrame(unsigned char* nv21ImageData) {
 }
 
 void renderFrame() {
-  if (currentProgram != renderer->program) {
-    glUseProgram(renderer->program);
-    currentProgram = renderer->program;
+  if (currentProgram != currentRenderer->program) {
+    glUseProgram(currentRenderer->program);
+    currentProgram = currentRenderer->program;
   }
 
   if (previewMode == PreviewMode::DETECT_EDGES_FAST 
    || previewMode == PreviewMode::DETECT_EDGES_FAST_LINES) { // Image points
-    renderer->setKeypoints(currentDetector->keypoints);
+    currentRenderer->setKeypoints(currentDetector->keypoints);
   }
   else { // Image edges
-    renderer->setImageData(currentDetector->processedImage.data);
+    currentRenderer->setImageData(currentDetector->processedImage.data);
   }
 
-  renderer->draw();
+  currentRenderer->draw();
 }
 
 extern "C" {
@@ -196,13 +195,17 @@ extern "C" {
 };
 
 JNIEXPORT void JNICALL Java_com_app_edgedetector_MyGLSurfaceView_init(JNIEnv *env, jobject obj,  jint width, jint height) {
+  // Set up default preview mode
   setupDefaults();
 
-  setupDetectors();
+  // Set up renderer and detector classes
   setupRenderers();
+  setupDetectors();
 
+  // Set up graphics
   setupGraphics(width, height);
 
+  // Select default detector and renderer
   updateDetector();
   updateRenderer();
 
