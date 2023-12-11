@@ -22,9 +22,9 @@ using namespace cv;
 #include "detector_edges_image_background.cpp"
 #include "detector_edges_points.cpp"
 #include "renderer.cpp"
-#include "squares_renderer.cpp"
-#include "lines_renderer.cpp"
-#include "texture_renderer.cpp"
+#include "renderer_red_squares.cpp"
+#include "renderer_red_lines.cpp"
+#include "renderer_texture.cpp"
 
 bool initialized;
 
@@ -111,14 +111,14 @@ void setRenderer(Renderer *renderer_) {
   renderer = renderer_;
 }
 
-SquaresRenderer *squaresRenderer;
-LinesRenderer *linesRenderer;
-TextureRenderer *textureRenderer;
+Renderer_Red_Squares *squaresRenderer;
+Renderer_Red_Lines *linesRenderer;
+Renderer_Texture *textureRenderer;
 
 void setupRenderers() {
-  squaresRenderer = new SquaresRenderer(gProgram);
-  linesRenderer = new LinesRenderer(gProgram);
-  textureRenderer = new TextureRenderer(gTextureProgram);
+  squaresRenderer = new Renderer_Red_Squares(gProgram);
+  linesRenderer = new Renderer_Red_Lines(gProgram);
+  textureRenderer = new Renderer_Texture(gTextureProgram);
 }
 
 void updateRenderer() {

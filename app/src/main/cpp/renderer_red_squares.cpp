@@ -1,4 +1,4 @@
-class LinesRenderer : public Renderer {
+class Renderer_Red_Squares : public Renderer {
 public:
   const float squareWidth = 0.01f;
   const float squareHeight = 0.01f;
@@ -11,7 +11,7 @@ public:
     -0.5f * squareWidth,  0.5f * squareHeight  // top left
   };
 
-  LinesRenderer(GLuint program_)
+  Renderer_Red_Squares(GLuint program_)
   : Renderer(program_) {
   }
 
@@ -36,15 +36,29 @@ public:
       vboData[vboIndex + 6] = squareVertices[6] + x;
       vboData[vboIndex + 7] = squareVertices[7] + y;
 
+      const uint32_t iboIndex = i * 6;
+      const uint32_t offsetIbo = i * 4;
+      iboData[iboIndex + 0] = indices[0] + offsetIbo;
+      iboData[iboIndex + 1] = indices[1] + offsetIbo;
+      iboData[iboIndex + 2] = indices[2] + offsetIbo;
+      iboData[iboIndex + 3] = indices[3] + offsetIbo;
+      iboData[iboIndex + 4] = indices[4] + offsetIbo;
+      iboData[iboIndex + 5] = indices[5] + offsetIbo;
+
       ++i;
     });
 
     size_t numSquares = keypoints.size();
     size_t vboSize = numSquares * 32;
+    size_t iboSize = numSquares * 24;
 
     // VBO
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, vboSize, vboData, GL_DYNAMIC_DRAW);
+
+    // IBO
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, iboSize, iboData, GL_DYNAMIC_DRAW);
 
     // Set up the vertex attribute pointers
     glVertexAttribPointer(positionHandle, 2, GL_FLOAT, GL_FALSE, 0, 0);
@@ -52,12 +66,13 @@ public:
 
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // Draw the lines
-    glDrawArrays(GL_TRIANGLES, 0, numSquares * 6);
+    // Draw the squares
+    glDrawElements(GL_TRIANGLES, numSquares * 6, GL_UNSIGNED_SHORT, 0);
 
     glDisableVertexAttribArray(positionHandle);
 
     glDeleteBuffers(1, &vbo);
+    glDeleteBuffers(1, &ibo);
   }
 
 private:
