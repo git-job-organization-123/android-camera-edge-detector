@@ -1,28 +1,45 @@
 class Renderer_Texture : public Renderer {
 public:
-  GLint texCoordHandle;
-  GLint textureHandle;
-  GLuint texture;
+  const char* getVertexShader() override {
+    return R"(#version 300 es
+      layout(location = 0) in vec2 vPosition;
+      layout(location = 1) in vec2 vTexCoord;
+      out vec2 texCoord;
 
-  // Texture
-  const GLfloat textureVertices[16] = {
-     1.0f,  1.0f, 0.0f, 0.0f, // top right
-     1.0f, -1.0f, 1.0f, 0.0f, // bottom right
-    -1.0f, -1.0f, 1.0f, 1.0f, // bottom left
-    -1.0f,  1.0f, 0.0f, 1.0f  // top left
-  };
+      void main() {
+        gl_Position = vec4(vPosition, 0.0, 1.0);
+        texCoord = vTexCoord;
+      }
+    )";
+  }
+  
+  const char* getFragmentShader() override {
+    return R"(#version 300 es
+      precision mediump float;
+      in vec2 texCoord;
+      uniform sampler2D uTexture;
+      out vec4 fragColor;
 
-  const size_t textureVerticesSize = 4 * sizeof(GLfloat);
-  const size_t iboSize = 6 * sizeof(GLushort);
+      void main() {
+        fragColor = texture(uTexture, texCoord);
+      }
+    )";
+  }
 
-  unsigned char* imageData;
+  void setupProgram() override {
+    program = createProgram(getVertexShader(), getFragmentShader());
+    if (!program) {
+      return;
+    }
 
-  Renderer_Texture(GLuint program_)
-  : Renderer(program_) {
-    texCoordHandle = glGetAttribLocation(program_, "vTexCoord");
-    textureHandle = glGetUniformLocation(program_, "uTexture");
+    glGenBuffers(1, &vbo);
+    glGenBuffers(1, &ibo);
 
-    glVertexAttribPointer(texCoordHandle, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), textureVertices + 2);
+    positionHandle = glGetAttribLocation(program, "vPosition");
+    texCoordHandle = glGetAttribLocation(program, "vTexCoord");
+    textureHandle = glGetUniformLocation(program, "uTexture");
+
+    glVertexAttribPointer(texCoordHandle, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), vertices + 2);
     glEnableVertexAttribArray(texCoordHandle);
 
     glActiveTexture(GL_TEXTURE0);
@@ -45,7 +62,7 @@ public:
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, iboSize, indices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(positionHandle, 2, GL_FLOAT, GL_FALSE, textureVerticesSize, textureVertices);
+    glVertexAttribPointer(positionHandle, 2, GL_FLOAT, GL_FALSE, verticesSize, vertices);
     glEnableVertexAttribArray(positionHandle);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, cameraWidth, cameraHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, imageData);
@@ -57,4 +74,28 @@ public:
   void setImageData(unsigned char* imageData_) override {
     imageData = imageData_;
   }
+
+private:
+  GLuint positionHandle;
+  GLint texCoordHandle;
+  GLint textureHandle;
+  GLuint texture;
+
+  // Square
+  const GLfloat vertices[16] = {
+     1.0f,  1.0f, 0.0f, 0.0f, // top right
+     1.0f, -1.0f, 1.0f, 0.0f, // bottom right
+    -1.0f, -1.0f, 1.0f, 1.0f, // bottom left
+    -1.0f,  1.0f, 0.0f, 1.0f  // top left
+  };
+
+  const GLushort indices[6] = {
+    0, 1, 2,
+    2, 3, 0
+  };
+
+  const size_t verticesSize = 4 * sizeof(GLfloat);
+  const size_t iboSize = 6 * sizeof(GLushort);
+
+  unsigned char* imageData;
 };

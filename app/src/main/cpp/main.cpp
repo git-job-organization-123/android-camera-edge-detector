@@ -23,9 +23,6 @@ enum PreviewMode {
 PreviewMode previewMode;
 PreviewMode previousPreviewMode;
 
-GLuint ibo;
-GLuint vbo;
-
 int cameraWidth;
 int cameraHeight;
 
@@ -46,9 +43,6 @@ int cameraHeight;
 #include "renderer_texture.cpp"
 
 bool initialized;
-
-GLuint gProgram;
-GLuint gTextureProgram;
 
 // Shader program currently in use
 GLuint currentProgram;
@@ -129,9 +123,9 @@ Renderer_Red_Lines *linesRenderer;
 Renderer_Texture *textureRenderer;
 
 void setupRenderers() {
-  squaresRenderer = new Renderer_Red_Squares(gProgram);
-  linesRenderer = new Renderer_Red_Lines(gProgram);
-  textureRenderer = new Renderer_Texture(gTextureProgram);
+  squaresRenderer = new Renderer_Red_Squares();
+  linesRenderer = new Renderer_Red_Lines();
+  textureRenderer = new Renderer_Texture();
 }
 
 void updateRenderer() {
@@ -157,127 +151,14 @@ void updatePreviewMode() {
   previousPreviewMode = previewMode;
 }
 
-const char* gVertexShader = R"(#version 300 es
-  layout(location = 0) in vec2 vPosition;
-
-  void main() {
-    gl_Position = vec4(vPosition, 0.0, 1.0);
-  }
-)";
-
-const char* gFragmentShader = R"(#version 300 es
-  precision mediump float;
-  out vec4 fragColor;
-
-  void main() {
-    fragColor = vec4(1.0, 0.0, 0.0, 1.0); // default color is red 
-  }
-)";
-
-const char* gTextureVertexShader = R"(#version 300 es
-  layout(location = 0) in vec2 vPosition;
-  layout(location = 1) in vec2 vTexCoord;
-  out vec2 texCoord;
-
-  void main() {
-    gl_Position = vec4(vPosition, 0.0, 1.0);
-    texCoord = vTexCoord;
-  }
-)";
-
-const char* gTextureFragmentShader = R"(#version 300 es
-  precision mediump float;
-  in vec2 texCoord;
-  uniform sampler2D uTexture;
-  out vec4 fragColor;
-
-  void main() {
-    fragColor = texture(uTexture, texCoord);
-  }
-)";
-
-GLuint loadShader(GLenum type, const char *shaderSrc) {
-  GLuint shader;
-  GLint compiled;
-  shader = glCreateShader(type);
-
-  if (shader == 0) {
-    return 0;
-  }
-
-  glShaderSource(shader, 1, &shaderSrc, NULL);
-  glCompileShader(shader);
-  glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
-  if (!compiled) {
-    GLint infoLen = 0;
-    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen);
-    if (infoLen > 1) {
-      char *infoLog = (char *)malloc(sizeof(char) * infoLen);
-      glGetShaderInfoLog(shader, infoLen, NULL, infoLog);
-      __android_log_print(ANDROID_LOG_ERROR, "edgedetector", "Error compiling shader:\n%s\n", infoLog);
-      free(infoLog);
-    }
-    glDeleteShader(shader);
-    return 0;
-  }
-  return shader;
-}
-
-GLuint createProgram(const char *vertexSource, const char *fragmentSource) {
-  GLuint vertexShader = loadShader(GL_VERTEX_SHADER, vertexSource);
-  if (!vertexShader) {
-    return 0;
-  }
-
-  GLuint fragmentShader = loadShader(GL_FRAGMENT_SHADER, fragmentSource);
-  if (!fragmentShader) {
-    return 0;
-  }
-
-  GLuint program = glCreateProgram();
-  if (program == 0) {
-    return 0;
-  }
-
-  glAttachShader(program, vertexShader);
-  glAttachShader(program, fragmentShader);
-  glLinkProgram  (program);
-  GLint linkStatus = GL_FALSE;
-  glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
-  if (linkStatus != GL_TRUE) {
-    GLint bufLength = 0;
-    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &bufLength);
-    if (bufLength) {
-      char *buf = (char *)malloc(bufLength);
-      if (buf) {
-        glGetProgramInfoLog(program, bufLength, NULL, buf);
-        __android_log_print(ANDROID_LOG_ERROR, "edgedetector", "Could not link program:\n%s\n", buf);
-        free(buf);
-      }
-    }
-    glDeleteProgram(program);
-    program = 0;
-  }
-  return program;
-}
-
 void setupGraphics(int width, int height) {
-  gProgram = createProgram(gVertexShader, gFragmentShader);
-  if (!gProgram) {
-    return;
-  }
-
-  gTextureProgram = createProgram(gTextureVertexShader, gTextureFragmentShader);
-  if (!gTextureProgram) {
-    return;
-  }
+  squaresRenderer->setupProgram();  
+  linesRenderer->setupProgram();  
+  textureRenderer->setupProgram();  
 
   // Default program
-  glUseProgram(gTextureProgram);
-  currentProgram = gTextureProgram;
-
-  glGenBuffers(1, &vbo);
-  glGenBuffers(1, &ibo);
+  glUseProgram(textureRenderer->program);
+  currentProgram = textureRenderer->program;
 
   glViewport(0, 0, width, height);
   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -317,10 +198,10 @@ extern "C" {
 JNIEXPORT void JNICALL Java_com_app_edgedetector_MyGLSurfaceView_init(JNIEnv *env, jobject obj,  jint width, jint height) {
   setupDefaults();
 
-  setupGraphics(width, height);
-
   setupDetectors();
   setupRenderers();
+
+  setupGraphics(width, height);
 
   updateDetector();
   updateRenderer();
