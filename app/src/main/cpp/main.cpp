@@ -36,7 +36,8 @@ Detector_Edges_Image_Blue *blueEdgesImageDetector;
 Detector_Edges_Image_White *whiteEdgesImageDetector;
 Detector_Edges_Image_Grayscale *grayscaleEdgesImageDetector;
 Detector_Edges_Image_Background *backgroundEdgesImageDetector;
-Detector_Edges_Points *pointsEdgesDetector;
+Detector_Edges_Points *redSquaresEdgesDetector;
+Detector_Edges_Points *redLinesEdgesDetector;
 
 Renderer_Red_Squares *redSquaresRenderer;
 Renderer_Red_Lines *redLinesRenderer;
@@ -67,7 +68,8 @@ void setupDetectors() {
   whiteEdgesImageDetector = new Detector_Edges_Image_White();
   grayscaleEdgesImageDetector = new Detector_Edges_Image_Grayscale();
   backgroundEdgesImageDetector = new Detector_Edges_Image_Background();
-  pointsEdgesDetector = new Detector_Edges_Points();
+  redSquaresEdgesDetector = new Detector_Edges_Points();
+  redLinesEdgesDetector = new Detector_Edges_Points();
 }
 
 void setupRenderers() {
@@ -84,8 +86,8 @@ void setupPreviewModes() {
   previewModes.push_back(new PreviewMode(blueEdgesImageDetector, textureRenderer));
   previewModes.push_back(new PreviewMode(grayscaleEdgesImageDetector, textureRenderer));
   previewModes.push_back(new PreviewMode(backgroundEdgesImageDetector, textureRenderer));
-  previewModes.push_back(new PreviewMode(pointsEdgesDetector, redSquaresRenderer));
-  previewModes.push_back(new PreviewMode(pointsEdgesDetector, redLinesRenderer));
+  previewModes.push_back(new PreviewMode(redSquaresEdgesDetector, redSquaresRenderer));
+  previewModes.push_back(new PreviewMode(redLinesEdgesDetector, redLinesRenderer));
 }
 
 void selectPreviewModeAtIndex(const int index) {
