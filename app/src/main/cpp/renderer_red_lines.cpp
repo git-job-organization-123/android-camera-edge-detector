@@ -34,7 +34,7 @@ public:
   }
 
   void init() override {
-    vboData = new GLfloat[8192 * 8 * sizeof(GLfloat)];
+    vboData = new GLfloat[16384 * 8 * sizeof(GLfloat)];
   }
 
   void setKeypoints(std::vector<cv::KeyPoint> &keypoints_) override {
@@ -45,7 +45,7 @@ public:
     GLint numSquares = 0;
 
     for (const auto& keypoint : keypoints) {
-      if (numSquares >= 8192) {
+      if (numSquares >= 16384) {
         // Prevent crash with limit
         continue;
       }

@@ -34,8 +34,8 @@ public:
   }
 
   void init() override {
-    vboData = new GLfloat[8192 * 8 * sizeof(GLfloat)];
-    iboData = new GLushort[8192 * 6 * sizeof(GLushort)];
+    vboData = new GLfloat[16384 * 8 * sizeof(GLfloat)];
+    iboData = new GLushort[16384 * 6 * sizeof(GLushort)];
   }
 
   void setKeypoints(std::vector<cv::KeyPoint> &keypoints_) override {
@@ -46,7 +46,7 @@ public:
     GLint numSquares = 0;
 
     for (const auto& keypoint : keypoints) {
-      if (numSquares >= 8192) {
+      if (numSquares >= 16384) {
         // Prevent crash with limit
         continue;
       }
