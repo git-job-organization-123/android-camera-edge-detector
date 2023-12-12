@@ -71,10 +71,12 @@ public:
   }
 
   virtual void setupProgram() {}
+  virtual void init() {}
   virtual void update() {}
   virtual void draw() {}
   virtual void setImageData(unsigned char* imageData_) {}
   virtual void setKeypoints(std::vector<cv::KeyPoint> &keypoints_) {}
+  virtual void clear() {}
 
 protected:
   GLuint ibo;

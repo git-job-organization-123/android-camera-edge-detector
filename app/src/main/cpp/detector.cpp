@@ -19,6 +19,7 @@ public:
   }
 
   virtual void detect() {}
+  virtual void updateRendererData(Renderer *renderer) {}
 
   virtual void clear() {
     clearImage();

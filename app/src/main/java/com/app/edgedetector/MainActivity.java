@@ -59,21 +59,6 @@ public class MainActivity extends AppCompatActivity {
     private int ySize_gl = 0;
     private int vSize_gl = 0;
 
-    enum PreviewMode {
-        DETECT_PREVIEW_EDGES_WHITE,
-        DETECT_PREVIEW_EDGES_RED,
-        DETECT_PREVIEW_EDGES_GREEN,
-        DETECT_PREVIEW_EDGES_BLUE,
-        DETECT_PREVIEW_EDGES_GRAYSCALE,
-        DETECT_PREVIEW_EDGES_WHITE_WITH_BACKGROUND,
-        DETECT_EDGES_FAST,
-        DETECT_EDGES_FAST_LINES,
-    };
-
-    PreviewMode previewMode = PreviewMode.DETECT_EDGES_FAST;
-    PreviewMode previousPreviewMode = PreviewMode.DETECT_EDGES_FAST;
-    int currentPreviewMode = 0;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -88,19 +73,6 @@ public class MainActivity extends AppCompatActivity {
 
         // Do not fade out screen after some time
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-    }
-
-    private void nextPreviewMode() {
-        ++currentPreviewMode;
-
-        if (currentPreviewMode > 7) {
-            currentPreviewMode = 0;
-        }
-
-        previousPreviewMode = previewMode;
-
-        // Select enum
-        previewMode = PreviewMode.values()[currentPreviewMode];
     }
 
     private final CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
@@ -328,8 +300,7 @@ public class MainActivity extends AppCompatActivity {
         
         switch(action) {
             case MotionEvent.ACTION_DOWN:
-                nextPreviewMode(); // Change to next preview mode
-                GLView.touch(currentPreviewMode);
+                GLView.touch();
                 break;
             case MotionEvent.ACTION_MOVE:
                 // Handle touch move event
@@ -356,7 +327,7 @@ class MyGLSurfaceView extends GLSurfaceView implements GLSurfaceView.Renderer {
     native public void init(int width, int height);
     native public void setCameraSettings(int width, int height);
     native public void draw();
-    native public void touch(int previewMode);
+    native public void touch();
     native public void processImageBuffers(ByteBuffer y, int ySize, int yPixelStride, int yRowStride, 
                                            ByteBuffer u, int uSize, int uPixelStride, int uRowStride, 
                                            ByteBuffer v, int vSize, int vPixelStride, int vRowStride);

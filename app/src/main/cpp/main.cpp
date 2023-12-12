@@ -9,23 +9,13 @@
 
 using namespace cv;
 
-enum PreviewMode {
-  DETECT_PREVIEW_EDGES_WHITE,
-  DETECT_PREVIEW_EDGES_RED,
-  DETECT_PREVIEW_EDGES_GREEN,
-  DETECT_PREVIEW_EDGES_BLUE,
-  DETECT_PREVIEW_EDGES_GRAYSCALE,
-  DETECT_PREVIEW_EDGES_WHITE_WITH_BACKGROUND,
-  DETECT_EDGES_FAST,
-  DETECT_EDGES_FAST_LINES,
-};
-
-PreviewMode previewMode;
-PreviewMode previousPreviewMode;
-
 int cameraWidth;
 int cameraHeight;
 
+#include "renderer.cpp"
+#include "renderer_red_squares.cpp"
+#include "renderer_red_lines.cpp"
+#include "renderer_texture.cpp"
 #include "detector.cpp"
 #include "detector_edges.cpp"
 #include "detector_edges_image.cpp"
@@ -37,18 +27,8 @@ int cameraHeight;
 #include "detector_edges_image_grayscale.cpp"
 #include "detector_edges_image_background.cpp"
 #include "detector_edges_points.cpp"
-#include "renderer.cpp"
-#include "renderer_red_squares.cpp"
-#include "renderer_red_lines.cpp"
-#include "renderer_texture.cpp"
 
 bool initialized;
-
-// Shader program currently in use
-GLuint currentProgram;
-
-Detector *currentDetector = nullptr;
-Renderer *currentRenderer = nullptr;
 
 Detector_Edges_Image_Red *redEdgesImageDetector;
 Detector_Edges_Image_Green *greenEdgesImageDetector;
@@ -58,15 +38,26 @@ Detector_Edges_Image_Grayscale *grayscaleEdgesImageDetector;
 Detector_Edges_Image_Background *backgroundEdgesImageDetector;
 Detector_Edges_Points *pointsEdgesDetector;
 
-Renderer_Red_Squares *squaresRenderer;
-Renderer_Red_Lines *linesRenderer;
+Renderer_Red_Squares *redSquaresRenderer;
+Renderer_Red_Lines *redLinesRenderer;
 Renderer_Texture *textureRenderer;
 
-void setupDefaults() {
-  // Default preview mode
-  previewMode = PreviewMode::DETECT_PREVIEW_EDGES_WHITE;
-  previousPreviewMode = previewMode;
-}
+struct PreviewMode {
+  Detector *detector;
+  Renderer *renderer;
+
+  PreviewMode(Detector *detector_, Renderer *renderer_) {
+    detector = detector_;
+    renderer = renderer_;
+  }
+};
+
+std::vector<PreviewMode*> previewModes;
+
+PreviewMode *currentPreviewMode;
+int currentPreviewModeIndex = 0;
+
+bool changeShaderProgramOnNextDraw = false;
 
 void setupDetectors() {
   redEdgesImageDetector = new Detector_Edges_Image_Red();
@@ -78,112 +69,77 @@ void setupDetectors() {
   pointsEdgesDetector = new Detector_Edges_Points();
 }
 
-void setDetector(Detector *detector) {
-  currentDetector = detector;
-}
-
-void updateDetector() {
-  if (currentDetector != nullptr) {
-    currentDetector->clear();
-  }
-
-  switch (previewMode) {
-    case PreviewMode::DETECT_PREVIEW_EDGES_WHITE:
-      currentDetector = whiteEdgesImageDetector;
-      break;
-    case PreviewMode::DETECT_PREVIEW_EDGES_RED:
-      currentDetector = redEdgesImageDetector;
-      break;
-    case PreviewMode::DETECT_PREVIEW_EDGES_GREEN:
-      currentDetector = greenEdgesImageDetector;
-      break;
-    case PreviewMode::DETECT_PREVIEW_EDGES_BLUE:
-      currentDetector = blueEdgesImageDetector;
-      break;
-    case PreviewMode::DETECT_PREVIEW_EDGES_GRAYSCALE:
-      currentDetector = grayscaleEdgesImageDetector;
-      break;
-    case PreviewMode::DETECT_PREVIEW_EDGES_WHITE_WITH_BACKGROUND:
-      currentDetector = backgroundEdgesImageDetector;
-      break;
-    case PreviewMode::DETECT_EDGES_FAST:
-      currentDetector = pointsEdgesDetector;
-      break;
-    case PreviewMode::DETECT_EDGES_FAST_LINES:
-      currentDetector = pointsEdgesDetector;
-      break;
-  }
-
-  currentDetector->init();
-}
-
 void setupRenderers() {
-  squaresRenderer = new Renderer_Red_Squares();
-  linesRenderer = new Renderer_Red_Lines();
+  redSquaresRenderer = new Renderer_Red_Squares();
+  redLinesRenderer = new Renderer_Red_Lines();
   textureRenderer = new Renderer_Texture();
 }
 
-void setRenderer(Renderer *renderer) {
-  currentRenderer = renderer;
+// Set up detector renderer pairs
+void setupPreviewModes() {
+  previewModes.push_back(new PreviewMode(whiteEdgesImageDetector, textureRenderer));
+  previewModes.push_back(new PreviewMode(redEdgesImageDetector, textureRenderer));
+  previewModes.push_back(new PreviewMode(greenEdgesImageDetector, textureRenderer));
+  previewModes.push_back(new PreviewMode(blueEdgesImageDetector, textureRenderer));
+  previewModes.push_back(new PreviewMode(grayscaleEdgesImageDetector, textureRenderer));
+  previewModes.push_back(new PreviewMode(backgroundEdgesImageDetector, textureRenderer));
+  previewModes.push_back(new PreviewMode(pointsEdgesDetector, redSquaresRenderer));
+  previewModes.push_back(new PreviewMode(pointsEdgesDetector, redLinesRenderer));
 }
 
-void updateRenderer() {
-  if (previewMode == PreviewMode::DETECT_EDGES_FAST) {
-    setRenderer(squaresRenderer);
+void selectPreviewModeAtIndex(const int index) {
+  if (currentPreviewMode != nullptr) {
+    currentPreviewMode->detector->clear();
+    currentPreviewMode->renderer->clear();
   }
-  else if (previewMode == PreviewMode::DETECT_EDGES_FAST_LINES) {
-    setRenderer(linesRenderer);
-  }
-  else {
-    setRenderer(textureRenderer);
-  }
+
+  currentPreviewModeIndex = index;
+  currentPreviewMode = previewModes.at(currentPreviewModeIndex);
+
+  currentPreviewMode->detector->init();
+  currentPreviewMode->renderer->init();
+
+  // Change shader progran on next draw
+  changeShaderProgramOnNextDraw = true;
 }
 
-void updatePreviewMode() {
-  if (previewMode == previousPreviewMode) {
-    return;
-  }
-  
-  updateDetector();
-  updateRenderer();
+void selectNextPreviewMode() {
+  ++currentPreviewModeIndex;
 
-  previousPreviewMode = previewMode;
+  if (currentPreviewModeIndex >= previewModes.size()) {
+    // Select preview mode at start
+    currentPreviewModeIndex = 0;
+  }
+
+  selectPreviewModeAtIndex(currentPreviewModeIndex);
 }
 
 void setupGraphics(int width, int height) {
-  squaresRenderer->setupProgram();  
-  linesRenderer->setupProgram();  
-  textureRenderer->setupProgram();  
+  redSquaresRenderer->setupProgram();  
+  redLinesRenderer->setupProgram();  
+  textureRenderer->setupProgram(); 
 
   // Default program
-  glUseProgram(textureRenderer->program);
-  currentProgram = textureRenderer->program;
+  glUseProgram(currentPreviewMode->renderer->program);
 
   glViewport(0, 0, width, height);
   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 }
 
 void detectFrame(unsigned char* nv21ImageData) {  
-  currentDetector->setImageData(nv21ImageData);
-  currentDetector->detect();
-  currentDetector->clearImage();
+  currentPreviewMode->detector->setImageData(nv21ImageData);
+  currentPreviewMode->detector->detect();
+  currentPreviewMode->detector->updateRendererData(currentPreviewMode->renderer);
+  currentPreviewMode->detector->clearImage();
 }
 
 void renderFrame() {
-  if (currentProgram != currentRenderer->program) {
-    glUseProgram(currentRenderer->program);
-    currentProgram = currentRenderer->program;
+  if (changeShaderProgramOnNextDraw) {
+    glUseProgram(currentPreviewMode->renderer->program);
+    changeShaderProgramOnNextDraw = false;
   }
 
-  if (previewMode == PreviewMode::DETECT_EDGES_FAST 
-   || previewMode == PreviewMode::DETECT_EDGES_FAST_LINES) { // Image points
-    currentRenderer->setKeypoints(currentDetector->keypoints);
-  }
-  else { // Image edges
-    currentRenderer->setImageData(currentDetector->processedImage.data);
-  }
-
-  currentRenderer->draw();
+  currentPreviewMode->renderer->draw();
 }
 
 extern "C" {
@@ -191,23 +147,22 @@ extern "C" {
   JNIEXPORT void JNICALL Java_com_app_edgedetector_MyGLSurfaceView_setCameraSettings(JNIEnv* env, jobject obj, int32_t width, int32_t height);
   JNIEXPORT void JNICALL Java_com_app_edgedetector_MyGLSurfaceView_draw(JNIEnv *env, jobject obj);
   JNIEXPORT void JNICALL Java_com_app_edgedetector_MyGLSurfaceView_processImageBuffers(JNIEnv* env, jobject obj, jobject y, int ySize, int yPixelStride, int yRowStride, jobject u, int uSize, int uPixelStride, int uRowStride, jobject v, int vSize, int vPixelStride, int vRowStride);
-  JNIEXPORT void JNICALL Java_com_app_edgedetector_MyGLSurfaceView_touch(JNIEnv *env, jobject obj, int previewMode);
+  JNIEXPORT void JNICALL Java_com_app_edgedetector_MyGLSurfaceView_touch(JNIEnv *env, jobject obj);
 };
 
 JNIEXPORT void JNICALL Java_com_app_edgedetector_MyGLSurfaceView_init(JNIEnv *env, jobject obj,  jint width, jint height) {
-  // Set up default preview mode
-  setupDefaults();
-
   // Set up renderer and detector classes
   setupRenderers();
   setupDetectors();
 
+  // Set up list of preview modes
+  setupPreviewModes();
+
+  // Select first preview mode
+  selectPreviewModeAtIndex(0);
+
   // Set up graphics
   setupGraphics(width, height);
-
-  // Select default detector and renderer
-  updateDetector();
-  updateRenderer();
 
   initialized = true;
 }
@@ -295,8 +250,6 @@ JNIEXPORT void JNICALL Java_com_app_edgedetector_MyGLSurfaceView_processImageBuf
 }
 
 JNIEXPORT void JNICALL Java_com_app_edgedetector_MyGLSurfaceView_touch(JNIEnv* env,
-                                                                             jobject obj,
-                                                                             int previewMode_) {
-  previewMode = static_cast<PreviewMode>(previewMode_); // Set preview mode
-  updatePreviewMode();
+                                                                       jobject obj) {
+  selectNextPreviewMode();
 }

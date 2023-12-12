@@ -11,6 +11,11 @@ public:
     featureDetector->detect(currentImage, keypoints);
   }
 
+  void updateRendererData(Renderer *renderer) override {
+    // Update renderer keypoints
+    renderer->setKeypoints(keypoints);
+  }
+
 private:
   cv::Ptr<cv::Feature2D> featureDetector;
 };
