@@ -13,7 +13,7 @@ public:
     cv::cvtColor(processedImage, processedImage, cv::COLOR_BGR2RGB);
   }
 
-  void updateRendererData(Renderer *renderer) override {
+  void updateRendererData() override {
     // Update renderer image
     renderer->setImageData(processedImage.data);
   }

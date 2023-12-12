@@ -11,7 +11,7 @@ public:
     featureDetector->detect(currentImage, keypoints);
   }
 
-  void updateRendererData(Renderer *renderer) override {
+  void updateRendererData() override {
     // Update renderer keypoints
     renderer->setKeypoints(keypoints);
   }
