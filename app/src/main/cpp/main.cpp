@@ -89,7 +89,7 @@ void setupPreviewModes() {
 
 void selectPreviewModeAtIndex(const int index) {
   if (currentPreviewMode != nullptr) {
-    currentPreviewMode->detector->clear();
+    // currentPreviewMode->detector->clear();
     currentPreviewMode->renderer->clear();
   }
 
